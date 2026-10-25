@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Set;
 
 @Component
-@Profile("!prod") // Safe dev seed: never executes in production environment
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
@@ -47,52 +46,59 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (userRepository.count() > 0) {
-            log.info("Database already contains data. Skipping initial demo seed.");
+        if (propertyRepository.count() > 0 && userRepository.existsByEmail("user@example.com")) {
+            log.info("Demo accommodations and accounts already exist. Skipping seed.");
             return;
         }
 
-        log.info("Seeding realistic Hyderabad accommodation demo data for local development...");
+        log.info("Seeding realistic Hyderabad accommodation demo data and accounts...");
 
-        // 1. Create Default Admin
-        User admin = new User();
-        admin.setEmail("admin@stayhyderabad.com");
-        admin.setPasswordHash(passwordEncoder.encode("Admin@123"));
-        admin.setFullName("Platform Administrator");
-        admin.setPhone("9876500001");
-        admin.setRole(Role.ROLE_ADMIN);
-        admin.setStatus(UserStatus.ACTIVE);
-        admin = userRepository.save(admin);
+        // 1. Create or Find Default Admin
+        User admin = userRepository.findByEmail("admin@stayhyderabad.com").orElseGet(() -> {
+            User a = new User();
+            a.setEmail("admin@stayhyderabad.com");
+            a.setPasswordHash(passwordEncoder.encode("Admin@123"));
+            a.setFullName("Platform Administrator");
+            a.setPhone("9876500001");
+            a.setRole(Role.ROLE_ADMIN);
+            a.setStatus(UserStatus.ACTIVE);
+            return userRepository.save(a);
+        });
 
-        // 2. Create Default Owner
-        User owner = new User();
-        owner.setEmail("owner@example.com");
-        owner.setPasswordHash(passwordEncoder.encode("Owner@123"));
-        owner.setFullName("K. Venkat Rao");
-        owner.setPhone("9849012345");
-        owner.setRole(Role.ROLE_OWNER);
-        owner.setStatus(UserStatus.ACTIVE);
-        owner = userRepository.save(owner);
+        // 2. Create or Find Default Owner
+        User owner = userRepository.findByEmail("owner@example.com").orElseGet(() -> {
+            User o = new User();
+            o.setEmail("owner@example.com");
+            o.setPasswordHash(passwordEncoder.encode("Owner@123"));
+            o.setFullName("K. Venkat Rao");
+            o.setPhone("9849012345");
+            o.setRole(Role.ROLE_OWNER);
+            o.setStatus(UserStatus.ACTIVE);
+            User saved = userRepository.save(o);
 
-        OwnerProfile ownerProfile = new OwnerProfile();
-        ownerProfile.setUser(owner);
-        ownerProfile.setBusinessName("Sri Balaji Hospitality Solutions");
-        ownerProfile.setGovtIdType("AADHAAR");
-        ownerProfile.setGovtIdNumber("XXXX-XXXX-8921");
-        ownerProfile.setIsVerified(true);
-        ownerProfile.setAlternatePhone("9849054321");
-        ownerProfile.setAddress("Plot 42, Silicon Valley, Madhapur, Hyderabad, Telangana 500081");
-        ownerProfileRepository.save(ownerProfile);
+            OwnerProfile ownerProfile = new OwnerProfile();
+            ownerProfile.setUser(saved);
+            ownerProfile.setBusinessName("Sri Balaji Hospitality Solutions");
+            ownerProfile.setGovtIdType("AADHAAR");
+            ownerProfile.setGovtIdNumber("XXXX-XXXX-8921");
+            ownerProfile.setIsVerified(true);
+            ownerProfile.setAlternatePhone("9849054321");
+            ownerProfile.setAddress("Plot 42, Silicon Valley, Madhapur, Hyderabad, Telangana 500081");
+            ownerProfileRepository.save(ownerProfile);
+            return saved;
+        });
 
-        // 3. Create Default Regular User
-        User user = new User();
-        user.setEmail("user@example.com");
-        user.setPasswordHash(passwordEncoder.encode("User@123"));
-        user.setFullName("Rahul Sharma");
-        user.setPhone("9988776655");
-        user.setRole(Role.ROLE_USER);
-        user.setStatus(UserStatus.ACTIVE);
-        user = userRepository.save(user);
+        // 3. Create or Find Default Regular User
+        User user = userRepository.findByEmail("user@example.com").orElseGet(() -> {
+            User u = new User();
+            u.setEmail("user@example.com");
+            u.setPasswordHash(passwordEncoder.encode("User@123"));
+            u.setFullName("Rahul Sharma");
+            u.setPhone("9988776655");
+            u.setRole(Role.ROLE_USER);
+            u.setStatus(UserStatus.ACTIVE);
+            return userRepository.save(u);
+        });
 
         // Fetch Amenities
         List<Amenity> allAmenities = amenityRepository.findAll();
